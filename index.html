@@ -3,36 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>สร้างรูปภาพ</title>
+    <title>เครื่องมือสร้างรูปภาพ</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;700&display=swap');
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #311B92; /* Dark purple background */
+            font-family: 'Kanit', sans-serif;
+            background-color: #1a1a2e; /* A darker, more modern purple */
+        }
+        .glassmorphism {
+            background: rgba(49, 27, 146, 0.6); /* Semi-transparent background */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-hover-effect {
+            transition: all 0.3s ease-in-out;
+        }
+        .btn-hover-effect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(93, 22, 230, 0.5);
         }
     </style>
 </head>
-<body class="bg-[#311B92] flex items-center justify-center min-h-screen p-4">
+<body class="bg-[#1a1a2e] flex items-center justify-center min-h-screen p-4">
 
-    <div id="app" class="bg-purple-950 text-white p-8 rounded-2xl shadow-xl max-w-2xl w-full text-center">
-        <h1 class="text-3xl md:text-4xl font-bold mb-6">เครื่องมือสร้างรูปภาพ</h1>
-        <p class="text-gray-300 mb-6">ป้อนคำอธิบายภาพที่ต้องการ จากนั้นคลิกปุ่มด้านล่าง</p>
+    <div id="app" class="glassmorphism text-white p-6 md:p-8 rounded-2xl shadow-xl max-w-2xl w-full text-center">
+        <h1 class="text-3xl md:text-4xl font-bold mb-4">AI Image Generator</h1>
+        <p class="text-gray-300 mb-6">ป้อนคำอธิบายภาพที่ต้องการ แล้วกด "สร้างรูปภาพ"</p>
 
         <!-- Prompt input section -->
-        <div class="mb-6 w-full">
-            <textarea id="prompt-input" rows="4" class="w-full p-3 rounded-lg bg-purple-800 text-white placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none" placeholder="ภาพนามธรรมที่มีตัวอักษร 'A' สีม่วงเข้มอยู่ตรงกลาง พร้อมโค้ด Java เล็กๆ กระจายอยู่รอบๆ"></textarea>
+        <div class="relative mb-4 w-full">
+            <textarea id="prompt-input" rows="4" class="w-full p-3 pr-10 rounded-lg bg-purple-900/50 text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none" placeholder="แมวนักบินอวกาศกำลังเล่นกีตาร์บนดวงจันทร์"></textarea>
+            <button id="new-prompt-button" title="สุ่มไอเดียใหม่" class="absolute top-2 right-2 text-purple-300 hover:text-white transition">
+                <i class="fas fa-random fa-lg"></i>
+            </button>
         </div>
 
-        <div id="image-container" class="relative bg-purple-800 rounded-xl overflow-hidden mb-6" style="height: 400px;">
-            <div id="loading-spinner" class="absolute inset-0 flex items-center justify-center hidden">
+        <div id="image-container" class="relative bg-black/30 rounded-xl overflow-hidden mb-6 flex items-center justify-center" style="height: 400px;">
+            <div id="placeholder-text" class="text-gray-400">รูปภาพของคุณจะปรากฏที่นี่</div>
+            <div id="loading-spinner" class="absolute inset-0 flex items-center justify-center bg-black/50 hidden">
                 <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-400"></div>
             </div>
             <img id="generated-image" src="" alt="รูปภาพที่สร้าง" class="w-full h-full object-contain hidden">
         </div>
 
-        <button id="generate-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
-            สร้างรูปภาพ
+        <button id="generate-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full shadow-lg btn-hover-effect">
+            <i class="fas fa-magic mr-2"></i> สร้างรูปภาพ
         </button>
 
         <div id="error-message" class="mt-4 text-red-400 hidden"></div>
@@ -44,8 +61,26 @@
         const generatedImage = document.getElementById('generated-image');
         const errorMessage = document.getElementById('error-message');
         const promptInput = document.getElementById('prompt-input');
+        const newPromptButton = document.getElementById('new-prompt-button');
+        const placeholderText = document.getElementById('placeholder-text');
 
-        const apiKey = "";
+        const samplePrompts = [
+            "แมวนักบินอวกาศกำลังเล่นกีตาร์บนดวงจันทร์",
+            "เมืองใต้น้ำที่ส่องสว่างด้วยสิ่งมีชีวิตเรืองแสง",
+            "ภาพวาดสีน้ำมันของตลาดกลางคืนที่กรุงเทพฯในฤดูฝน",
+            "หุ่นยนต์กำลังนั่งสมาธิบนยอดเขาหิมาลัย",
+            "สุนัขพันธุ์ชิบะอินุในชุดซามูไรกำลังจิบชา",
+            "ป่าเวทมนตร์ที่มีต้นไม้ลอยได้และแม่น้ำสีรุ้ง",
+        ];
+
+        let currentPromptIndex = 0;
+
+        newPromptButton.addEventListener('click', () => {
+            currentPromptIndex = (currentPromptIndex + 1) % samplePrompts.length;
+            promptInput.value = samplePrompts[currentPromptIndex];
+        });
+
+        const apiKey = ""; 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
 
         // ฟังก์ชันสำหรับการหน่วงเวลาแบบ exponential backoff
@@ -53,17 +88,16 @@
             try {
                 const response = await fetch(url, options);
                 if (response.status === 429 && retries > 0) {
-                    console.warn(`Too many requests, retrying in ${delay}ms...`);
                     await new Promise(res => setTimeout(res, delay));
                     return fetchWithBackoff(url, options, retries - 1, delay * 2);
                 }
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorBody = await response.json();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorBody.error.message}`);
                 }
                 return response;
             } catch (error) {
                 if (retries > 0) {
-                    console.warn(`Fetch failed, retrying in ${delay}ms...`);
                     await new Promise(res => setTimeout(res, delay));
                     return fetchWithBackoff(url, options, retries - 1, delay * 2);
                 }
@@ -72,7 +106,7 @@
         }
 
         generateButton.addEventListener('click', async () => {
-            const userPrompt = promptInput.value || promptInput.placeholder;
+            const userPrompt = promptInput.value.trim() || promptInput.placeholder;
             if (!userPrompt) {
                 errorMessage.textContent = 'กรุณาป้อนคำอธิบายภาพ';
                 errorMessage.classList.remove('hidden');
@@ -82,7 +116,9 @@
             loadingSpinner.classList.remove('hidden');
             generatedImage.classList.add('hidden');
             errorMessage.classList.add('hidden');
+            placeholderText.classList.add('hidden');
             generateButton.disabled = true;
+            generateButton.classList.add('opacity-50', 'cursor-not-allowed');
 
             const payload = {
                 instances: [{ prompt: userPrompt }],
@@ -104,19 +140,19 @@
                     generatedImage.src = imageUrl;
                     generatedImage.classList.remove('hidden');
                 } else {
-                    throw new Error('ไม่สามารถสร้างรูปภาพได้: ข้อมูลไม่ถูกต้อง');
+                    throw new Error('ไม่พบข้อมูลรูปภาพในผลลัพธ์ที่ส่งกลับมา');
                 }
             } catch (error) {
                 console.error('เกิดข้อผิดพลาดในการสร้างรูปภาพ:', error);
-                errorMessage.textContent = 'ไม่สามารถสร้างรูปภาพได้ กรุณาลองอีกครั้งในภายหลัง';
+                errorMessage.textContent = 'ไม่สามารถสร้างรูปภาพได้ กรุณาตรวจสอบ API Key และลองอีกครั้ง';
                 errorMessage.classList.remove('hidden');
+                placeholderText.classList.remove('hidden');
             } finally {
                 loadingSpinner.classList.add('hidden');
                 generateButton.disabled = false;
+                generateButton.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         });
     </script>
 </body>
-
 </html>
-
